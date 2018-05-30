@@ -5,12 +5,77 @@
 
     <fragment xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:tools="http://schemas.android.com/tools"
+        android:id="@+id/map"
+        android:name="com.google.android.gms.maps.SupportMapFragment"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:id="@+id/map"
-        tools:context=".MapsActivity"
-        android:name="com.google.android.gms.maps.SupportMapFragment" />
+        android:layout_marginBottom="70dp"
+        tools:context=".MapsActivity" />
 
+    <TextView
+        android:id="@+id/title_kecepatan"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentStart="true"
+        android:layout_below="@+id/map"
+        android:textColor="#000000"
+        android:layout_marginStart="11dp"
+        android:layout_marginTop="-70dp"
+        android:text="Kecepatan Kereta:"
+        android:textSize="12sp" />
 
+    <TextView
+        android:id="@+id/title_maks"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_below="@+id/map"
+        android:textColor="#000000"
+        android:layout_marginEnd="111dp"
+        android:layout_marginTop="-70dp"
+        android:text="Kecepatan Maksimal:"
+        android:textSize="12sp" />
+
+    <TextView
+        android:id="@+id/realtime_kecepatan"
+        android:layout_width="wrap_content"
+        android:layout_height="51dp"
+        android:layout_alignStart="@+id/title_kecepatan"
+        android:layout_below="@+id/title_kecepatan"
+        android:text="0 km/jam"
+        android:textColor="#0000ff"
+        android:textSize="18sp" />
+
+    <TextView
+        android:id="@+id/realtime_maks"
+        android:layout_width="wrap_content"
+        android:layout_height="51dp"
+        android:layout_alignStart="@+id/title_maks"
+        android:layout_below="@+id/title_kecepatan"
+        android:text="0 km/jam"
+        android:textColor="#0000ff"
+        android:textSize="18sp" />
+
+    <TextView
+        android:id="@+id/title_radius"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_below="@+id/map"
+        android:layout_marginEnd="40dp"
+        android:layout_marginTop="-70dp"
+        android:text="Jarak:"
+        android:textColor="#000000"
+        android:textSize="12sp" />
+
+    <TextView
+        android:id="@+id/realtime_radius"
+        android:layout_width="wrap_content"
+        android:layout_height="54dp"
+        android:layout_alignParentBottom="true"
+        android:layout_alignStart="@+id/title_radius"
+        android:text="0 km"
+        android:textColor="#0000ff"
+        android:textSize="18sp" />
 
 </RelativeLayout>

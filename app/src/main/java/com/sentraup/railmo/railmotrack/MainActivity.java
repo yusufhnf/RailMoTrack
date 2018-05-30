@@ -2,8 +2,10 @@ package com.sentraup.railmo.railmotrack;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
+import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
+import android.location.LocationManager;
 import android.os.Build;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
@@ -15,15 +17,15 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.android.volley.Request;
+import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
-import com.android.volley.toolbox.StringRequest;
-import com.google.android.gms.maps.SupportMapFragment;
-import com.sentraup.railmo.railmotrack.app.AppController;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.Volley;
 import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
-import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -32,28 +34,29 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.math.BigDecimal;
+import java.util.Locale;
+
 public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         , GoogleMap.OnMyLocationButtonClickListener
         , GoogleMap.OnMyLocationClickListener, LocationListener {
 
     GoogleMap gMap;
     MarkerOptions markerOptions = new MarkerOptions();
-    CameraPosition cameraPosition;
     LatLng center, latLng;
     String title;
     TextView text;
-    double glat;
-    double glng;
 
-    public static double myLat = 0;
-    public static double myLng = 0;
+    LocationManager locationManager;
+    Location location;
+
     public static final String LAT = "lat";
     public static final String LNG = "lon";
     //public static final String INDEK = "indek";
     public static final String TITLE = "vmak";
-    //public static final String JARAK = "jarak";
-    private String URL = "http://railmo.sentraup.com/parsing.php?lat=-7.59669025&lon=112.77421500&rute=1";
-    String tag_json_obj = "json_obj_req";
+    public static final String JARAK = "jarak";
+
+    TextView kecepatan, maks, radius;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,6 +66,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+
+        kecepatan = findViewById(R.id.realtime_kecepatan);
+        maks = findViewById(R.id.realtime_maks);
+        radius = findViewById(R.id.realtime_radius);
     }
 
     /**
@@ -78,8 +85,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     public void onMapReady(GoogleMap googleMap) {
         gMap = googleMap;
 
-        getMarkers(glat,glng);
-
+        //getMarkers(glat,glng);
+        locationManager = (LocationManager) this.getSystemService(LOCATION_SERVICE);
         // Add a marker in Sydney and move the camera
         /*LatLng sydney = new LatLng(-34, 151);
         gMap.addMarker(new MarkerOptions().position(sydney).title("Marker in Sydney"));
@@ -97,8 +104,18 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             gMap.setMyLocationEnabled(true);
         }
 
+        Criteria criteria = new Criteria();
+        String bestProvider = locationManager.getBestProvider(criteria,true);
+        location = locationManager.getLastKnownLocation(bestProvider);
+        locationManager.requestLocationUpdates(bestProvider,1,1, (LocationListener) this);
+        if(location!=null){
+            onLocationChanged(location);
+        }
+
         gMap.setOnMyLocationButtonClickListener(this);
         gMap.setOnMyLocationClickListener(this);
+        gMap.setMyLocationEnabled(true);
+        gMap.animateCamera(CameraUpdateFactory.zoomTo(21));
     }
 
     @Override
@@ -119,7 +136,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public boolean onMyLocationButtonClick() {
         Toast.makeText(this, "My Location Button Clicked", Toast.LENGTH_SHORT).show();
-        return true;
+        return false;
     }
 
     @Override
@@ -133,15 +150,46 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         double longitude = location.getLongitude();
         LatLng latLng = new LatLng(latitude, longitude);
         gMap.addMarker(new MarkerOptions().position(latLng));
-        gMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
-        gMap.animateCamera(CameraUpdateFactory.zoomTo(21));
+        //gMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
 
         LatLng latLngToAppearMarker;
 
         latLngToAppearMarker = getMarkers(latitude,longitude);
 
         gMap.clear();
-        gMap.addMarker(new MarkerOptions().position(latLngToAppearMarker));
+        if(latLngToAppearMarker!=null) {
+            gMap.addMarker(new MarkerOptions().position(latLngToAppearMarker));
+        }
+
+        double d_kecepatan = location.getSpeed();
+        double curSpeed = round(d_kecepatan,3,BigDecimal.ROUND_HALF_UP);
+        double kmphSpeed = round((curSpeed*3.6),3,BigDecimal.ROUND_HALF_UP);
+
+
+        maks.setText(getMaks() + " km/jam");
+
+        if(location.hasSpeed()){
+            String speed = String.format(Locale.ENGLISH, "%.0f", location.getSpeed() * 3.6) + " km/jam";
+            kecepatan.setText(speed);
+            radius.setText(getRadius() + " km");
+        }
+
+        //Toast.makeText(MainActivity.this, kmphSpeed + " " + getMaks() + " " + getRadius(), Toast.LENGTH_LONG).show();
+    }
+
+    public static double round(double unrounded, int precision, int roundingMode) {
+        BigDecimal bd = new BigDecimal(unrounded);
+        BigDecimal rounded = bd.setScale(precision, roundingMode);
+        return rounded.doubleValue();
+    }
+
+
+    String getMaks(){
+        return  kecmaks;
+    }
+
+    String getRadius(){
+        return rad;
     }
 
     @Override
@@ -171,140 +219,53 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             }
         });
     }
-
+    String kecmaks;
+    String rad;
     // Fungsi get JSON marker
     private LatLng getMarkers(double lat, double lng) {
-        String requestaddress = "http://railmo.sentraup.com/parsing.php?lat="+lat+"&lon="+lng+"&rute=1";
-        StringRequest strReq = new StringRequest(Request.Method.POST, requestaddress, new Response.Listener<String>() {
 
+        RequestQueue queue = Volley.newRequestQueue(this);
+
+        String requestaddress = "http://railmo.sentraup.com/parsing.php?lat="+lat+"&lon="+lng+"&rute=1";
+
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, requestaddress, null, new Response.Listener<JSONObject>() {
             @Override
-            public void onResponse(String response) {
+            public void onResponse(JSONObject response) {
                 Log.e("Response: ", response.toString());
 
                 try {
-                    JSONObject jObj = new JSONObject(response);
-                    String getObject = jObj.getString("node");
+                    //JSONObject jObj = new JSONObject((Map) response);
+                    String getObject = response.getString("node");
                     JSONArray jsonArray = new JSONArray(getObject);
+                    Log.d("Response JSON: ", getObject);
 
                     for (int i = 0; i < jsonArray.length(); i++) {
                         JSONObject jsonObject = jsonArray.getJSONObject(i);
-                        title = "Kecepatan Maksimal :" + jsonObject.getString(TITLE);
+                        title = "Kecepatan Maksimal :" + jsonObject.getString(TITLE) + " km/jam";
                         latLng = new LatLng(Double.parseDouble(jsonObject.getString(LAT)), Double.parseDouble(jsonObject.getString(LNG)));
 
                         // Menambah data marker untuk di tampilkan ke google map
                         addMarker(latLng, title);
+                        kecmaks = jsonObject.getString(TITLE);
+                        rad = jsonObject.getString(JARAK);
                     }
 
                 } catch (JSONException e) {
                     // JSON error
                     e.printStackTrace();
                 }
-
             }
         }, new Response.ErrorListener() {
-
             @Override
             public void onErrorResponse(VolleyError error) {
+
                 Log.e("Error: ", error.getMessage());
                 Toast.makeText(MainActivity.this, error.getMessage(), Toast.LENGTH_LONG).show();
             }
         });
 
-        AppController.getInstance().addToRequestQueue(strReq, tag_json_obj);
+        queue.add(jsonObjectRequest);
+        //AppController.getInstance().addToRequestQueue(strReq, tag_json_obj);
         return  latLng;
     }
 }
-
-/*public class MainActivity extends FragmentActivity implements OnMapReadyCallback {
-
-    MapFragment mapFragment;
-    GoogleMap gMap;
-    MarkerOptions markerOptions = new MarkerOptions();
-    CameraPosition cameraPosition;
-    LatLng center, latLng;
-    String title;
-    TextView text;
-
-    public static final String LAT = "lat";
-    public static final String LNG = "lon";
-    //public static final String INDEK = "indek";
-    public static final String TITLE = "vmak";
-    //public static final String JARAK = "jarak";
-    private String URL = "http://railmo.sentraup.com/parsing.php?lat=-7.59669025&lon=112.77421500&rute=1";
-    String tag_json_obj = "json_obj_req";
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-
-        mapFragment = (MapFragment) getFragmentManager().findFragmentById(R.id.map);
-        mapFragment.getMapAsync(this);
-
-    }
-
-    @Override
-    public void onMapReady(GoogleMap googleMap) {
-        gMap = googleMap;
-
-        center = new LatLng(-7.59669025, 112.77421500);
-        cameraPosition = new CameraPosition.Builder().target(center).zoom(10).build();
-        googleMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
-
-        getMarkers();
-    }
-
-    private void addMarker(LatLng latlng, final String title) {
-        markerOptions.position(latlng);
-        markerOptions.title(title);
-        gMap.addMarker(markerOptions);
-
-        gMap.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
-            @Override
-            public void onInfoWindowClick(Marker marker) {
-                Toast.makeText(getApplicationContext(), marker.getTitle(), Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
-
-    // Fungsi get JSON marker
-    private void getMarkers() {
-        StringRequest strReq = new StringRequest(Request.Method.POST, URL, new Response.Listener<String>() {
-
-            @Override
-            public void onResponse(String response) {
-                Log.e("Response: ", response.toString());
-
-                try {
-                    JSONObject jObj = new JSONObject(response);
-                    String getObject = jObj.getString("node");
-                    JSONArray jsonArray = new JSONArray(getObject);
-
-                    for (int i = 0; i < jsonArray.length(); i++) {
-                        JSONObject jsonObject = jsonArray.getJSONObject(i);
-                        title = jsonObject.getString(TITLE);
-                        latLng = new LatLng(Double.parseDouble(jsonObject.getString(LAT)), Double.parseDouble(jsonObject.getString(LNG)));
-
-                        // Menambah data marker untuk di tampilkan ke google map
-                        addMarker(latLng, title);
-                    }
-
-                } catch (JSONException e) {
-                    // JSON error
-                    e.printStackTrace();
-                }
-
-            }
-        }, new Response.ErrorListener() {
-
-            @Override
-            public void onErrorResponse(VolleyError error) {
-                Log.e("Error: ", error.getMessage());
-                Toast.makeText(MainActivity.this, error.getMessage(), Toast.LENGTH_LONG).show();
-            }
-        });
-
-        AppController.getInstance().addToRequestQueue(strReq, tag_json_obj);
-    }
-
-} */
