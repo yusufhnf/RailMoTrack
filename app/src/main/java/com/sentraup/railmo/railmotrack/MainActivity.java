@@ -70,6 +70,27 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         kecepatan = findViewById(R.id.realtime_kecepatan);
         maks = findViewById(R.id.realtime_maks);
         radius = findViewById(R.id.realtime_radius);
+
+        Thread thread = new Thread() {
+
+            @Override
+            public void run() {
+                try {
+                    while (!isInterrupted()) {
+                        Thread.sleep(5000);
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                radius.setText(getRadius() + " km");
+                            }
+                        });
+                    }
+                } catch (InterruptedException e) {
+                }
+            }
+        };
+
+        thread.start();
     }
 
     /**
@@ -84,13 +105,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onMapReady(GoogleMap googleMap) {
         gMap = googleMap;
-
-        //getMarkers(glat,glng);
         locationManager = (LocationManager) this.getSystemService(LOCATION_SERVICE);
-        // Add a marker in Sydney and move the camera
-        /*LatLng sydney = new LatLng(-34, 151);
-        gMap.addMarker(new MarkerOptions().position(sydney).title("Marker in Sydney"));
-        gMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));*/
 
         if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
@@ -161,28 +176,14 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             gMap.addMarker(new MarkerOptions().position(latLngToAppearMarker));
         }
 
-        double d_kecepatan = location.getSpeed();
-        double curSpeed = round(d_kecepatan,3,BigDecimal.ROUND_HALF_UP);
-        double kmphSpeed = round((curSpeed*3.6),3,BigDecimal.ROUND_HALF_UP);
-
-
         maks.setText(getMaks() + " km/jam");
 
         if(location.hasSpeed()){
             String speed = String.format(Locale.ENGLISH, "%.0f", location.getSpeed() * 3.6) + " km/jam";
             kecepatan.setText(speed);
-            radius.setText(getRadius() + " km");
+            //radius.setText(getRadius() + " km");
         }
-
-        //Toast.makeText(MainActivity.this, kmphSpeed + " " + getMaks() + " " + getRadius(), Toast.LENGTH_LONG).show();
     }
-
-    public static double round(double unrounded, int precision, int roundingMode) {
-        BigDecimal bd = new BigDecimal(unrounded);
-        BigDecimal rounded = bd.setScale(precision, roundingMode);
-        return rounded.doubleValue();
-    }
-
 
     String getMaks(){
         return  kecmaks;
