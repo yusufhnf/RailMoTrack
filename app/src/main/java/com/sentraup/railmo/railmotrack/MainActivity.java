@@ -34,7 +34,6 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.math.BigDecimal;
 import java.util.Locale;
 
 public class MainActivity extends FragmentActivity implements OnMapReadyCallback
@@ -71,6 +70,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         maks = findViewById(R.id.realtime_maks);
         radius = findViewById(R.id.realtime_radius);
 
+        //delay for
         Thread thread = new Thread() {
 
             @Override
@@ -150,7 +150,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
     @Override
     public boolean onMyLocationButtonClick() {
-        Toast.makeText(this, "My Location Button Clicked", Toast.LENGTH_SHORT).show();
+        //Toast.makeText(this, "My Location Button Clicked", Toast.LENGTH_SHORT).show();
         return false;
     }
 
@@ -261,7 +261,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             public void onErrorResponse(VolleyError error) {
 
                 Log.e("Error: ", error.getMessage());
-                Toast.makeText(MainActivity.this, error.getMessage(), Toast.LENGTH_LONG).show();
+                //Toast.makeText(MainActivity.this, error.getMessage(), Toast.LENGTH_LONG).show();
             }
         });
 
